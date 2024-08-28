@@ -3,13 +3,22 @@ import argparse
 import csv
 import matplotlib
 matplotlib.use('agg')
+font = {'family' : 'normal',
+        'weight' : 'bold',
+        'size'   : 20}
+
+matplotlib.rc('font', **font)
 import matplotlib.pyplot as plt
 import sys
 from itertools import cycle
 
 
-marker = cycle(('p', '^', 'h', 'x', 'o', 's', '*', '+', 'D', '1', 'X')) 
-linestyle = cycle((':', '-', '--'))
+styles = {'LMI': {'marker': 'p', 'linestyle': ':', 'color': 'red'},
+          'HSP': {'marker': '^', 'linestyle': '-', 'color': 'blue'},
+          'DEGLIB': {'marker': 'x', 'linestyle': '--', 'color': 'green'},
+          'HIOB': {'marker': 'x', 'linestyle': ':', 'color': 'purple'},
+          'BL-SearchGraph': {'marker': 'o', 'linestyle': '-', 'color': 'black'}
+          }
 
 def draw(lines, xlabel, ylabel, title, filename, with_ctrl, width, height):
     """
@@ -31,7 +40,8 @@ def draw(lines, xlabel, ylabel, title, filename, with_ctrl, width, height):
             assert key in line
 
     for line in lines:
-        plt.plot(line["xs"], line["ys"], label=line["label"], marker=next(marker), linestyle=next(linestyle))
+        S = line["style"]
+        plt.plot(line["xs"], line["ys"], label=line["label"], marker=S["marker"], linestyle=S["linestyle"], color=S["color"])
         if with_ctrl:
             for x, y, ctrl in zip(line["xs"], line["ys"], line["ctrls"]):
                 plt.annotate(text=str(ctrl), xy=(x, y),
@@ -43,6 +53,8 @@ def draw(lines, xlabel, ylabel, title, filename, with_ctrl, width, height):
     plt.yscale("log")
     plt.legend(bbox_to_anchor=(1.05, 1.0), loc="upper left")
     plt.title(title)
+    #plt.xticks(rotation=25)
+    plt.subplots_adjust(bottom=0.15)
     plt.savefig(filename, bbox_inches='tight')
     plt.cla()
 
@@ -65,6 +77,7 @@ def get_pareto_frontier(line):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("csvfile")
+    parser.add_argument("--title", default="")
     args = parser.parse_args()
     
     with open(args.csvfile, newline="") as csvfile:
@@ -75,9 +88,11 @@ if __name__ == "__main__":
     for res in data:
         algo = res["algo"]
         if algo.startswith("StochasticHIOB"):
-            algo = "StochasticHIOB"
+            algo = "HIOB"
         elif algo.startswith("SearchGraph"):
             algo = "BL-SearchGraph"
+        else:
+            algo = algo.upper()
 
         label = algo
         if label not in lines:
@@ -86,6 +101,7 @@ if __name__ == "__main__":
                 "ys": [],
                 "ctrls": [],
                 "label": label,
+                "style": styles[label],
             }
         lines[label]["xs"].append(float(res["recall"]))
         lines[label]["ys"].append(10000/float(res["querytime"])) # FIX query size hardcoded
@@ -95,4 +111,4 @@ if __name__ == "__main__":
     outname = args.csvfile.replace(".csv", "") + ".png"
     with_ctrls = False
     draw([get_pareto_frontier(line) for line in lines.values()], 
-            "Recall", "QPS (1/s)", "Result", outname, with_ctrls, 10, 8)
+            "Recall", "QPS (1/s)", args.title, outname, with_ctrls, 10, 8)
