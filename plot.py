@@ -52,10 +52,11 @@ def draw(lines, xlabel, ylabel, title, filename, with_ctrl, width, height):
     plt.grid(which="both")
     plt.yscale("log")
     plt.legend(bbox_to_anchor=(1.05, 1.0), loc="upper left")
+    #plt.legend(loc='best')
     plt.title(title)
     #plt.xticks(rotation=25)
     plt.subplots_adjust(bottom=0.15)
-    plt.savefig(filename, bbox_inches='tight')
+    plt.savefig(filename, bbox_inches='tight', dpi=300)
     plt.cla()
 
 def get_pareto_frontier(line):
